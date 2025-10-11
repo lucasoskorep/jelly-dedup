@@ -8,7 +8,6 @@ use clap::Parser;
 use client::JellyfinClient;
 use display::FileToDelete;
 use std::collections::HashSet;
-use std::env;
 use std::error::Error;
 
 /// A tool to find and manage duplicate episodes in Jellyfin
@@ -17,15 +16,15 @@ use std::error::Error;
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Jellyfin server URL
-    #[arg(short, long, env = "JELLYFIN_URL", default_value = "http://localhost:8096")]
+    #[arg(short, long, env("JELLYFIN_URL"), default_value = "http://localhost:8096")]
     jellyfin_url: String,
 
     /// Jellyfin API key
-    #[arg(short, long, env = "JELLYFIN_API_KEY")]
+    #[arg(short, long, env("JELLYFIN_API_KEY"))]
     api_key: String,
 
     /// Path prefix to remove from displayed file paths
-    #[arg(short, long, env = "PATH_PREFIX_TO_REMOVE")]
+    #[arg(short, long, env("PATH_PREFIX_TO_REMOVE"))]
     path_prefix_to_remove: Option<String>,
 }
 

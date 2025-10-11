@@ -1,6 +1,7 @@
-# jelly-dedup
+# Jelly Dedup
 
 A command-line tool to identify and manage duplicate episodes in your Jellyfin media server. This tool analyzes your TV show library, detects duplicate episodes, and provides removal commands to free up storage space.
+
 ## Features
 
 - Scans all TV shows in your Jellyfin library
