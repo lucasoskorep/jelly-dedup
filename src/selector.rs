@@ -26,8 +26,8 @@ pub fn select_best_source(sources: &[MediaSource]) -> Option<usize> {
 }
 
 fn is_better_source(candidate: &MediaSource, current_best: &MediaSource) -> bool {
-    let candidate_height = get_height(candidate);
-    let best_height = get_height(current_best);
+    let candidate_height = normalize_height(get_height(candidate));
+    let best_height = normalize_height(get_height(current_best));
 
     // Higher resolution always wins
     if candidate_height > best_height {
@@ -41,6 +41,37 @@ fn is_better_source(candidate: &MediaSource, current_best: &MediaSource) -> bool
     let best_effective_bitrate = calculate_effective_bitrate(current_best);
 
     candidate_effective_bitrate > best_effective_bitrate
+}
+
+fn normalize_height(height: i32) -> i32 {
+    // Normalize common cropped resolutions to their standard equivalents
+
+    // 4K/UHD range (2160p): includes 2160p, 2076p (cropped 4K), and other 4K variants
+    if height >= 2000 && height <= 2160 {
+        return 2160;
+    }
+
+    // 1080p/Full HD range: includes 1080p, 1038p, 960p (cropped 1080p)
+    if height >= 960 && height <= 1088 {
+        return 1080;
+    }
+
+    // 720p/HD range: includes 720p, 694p (cropped 720p)
+    if height >= 690 && height <= 720 {
+        return 720;
+    }
+
+    // 576p/SD range: includes 576p, 540p
+    if height >= 540 && height <= 576 {
+        return 576;
+    }
+
+    // 480p/SD range: includes 480p, 460p
+    if height >= 460 && height <= 480 {
+        return 480;
+    }
+
+    height
 }
 
 fn calculate_effective_bitrate(source: &MediaSource) -> f64 {

@@ -14,7 +14,7 @@ pub struct Item {
     pub name: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct MediaStream {
     #[serde(rename = "Type")]
     pub stream_type: Option<String>,
@@ -24,7 +24,7 @@ pub struct MediaStream {
     pub codec: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct MediaSource {
     #[serde(rename = "Path")]
     pub path: Option<String>,
@@ -56,4 +56,22 @@ pub struct Episode {
     pub season_number: Option<u32>,
     #[serde(rename = "MediaSources")]
     pub media_sources: Option<Vec<MediaSource>>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Movie {
+    #[serde(rename = "Id")]
+    pub _id: String,
+    #[serde(rename = "Name")]
+    pub name: String,
+    #[serde(rename = "ProductionYear")]
+    pub year: Option<u32>,
+    #[serde(rename = "MediaSources")]
+    pub media_sources: Option<Vec<MediaSource>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MoviesResponse {
+    #[serde(rename = "Items")]
+    pub items: Vec<Movie>,
 }

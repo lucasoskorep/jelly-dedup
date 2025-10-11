@@ -1,4 +1,4 @@
-use crate::models::{Episode, EpisodesResponse, Item, ItemsResponse};
+use crate::models::{Episode, EpisodesResponse, Item, ItemsResponse, Movie, MoviesResponse};
 use std::error::Error;
 
 pub struct JellyfinClient {
@@ -38,5 +38,17 @@ impl JellyfinClient {
         let episodes_response: EpisodesResponse = response.json().await?;
 
         Ok(episodes_response.items)
+    }
+
+    pub async fn get_all_movies(&self) -> Result<Vec<Movie>, Box<dyn Error>> {
+        let url = format!(
+            "{}/Items?IncludeItemTypes=Movie&Recursive=true&Fields=Path,MediaSources,ProductionYear&api_key={}",
+            self.base_url, self.api_key
+        );
+
+        let response = self.client.get(&url).send().await?;
+        let movies_response: MoviesResponse = response.json().await?;
+
+        Ok(movies_response.items)
     }
 }
