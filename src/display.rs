@@ -34,9 +34,11 @@ fn print_episode_with_versions(episode: Episode) -> Vec<FileToDelete> {
         .map(|ms| ms.len())
         .unwrap_or(0);
 
+    let episode_name = episode.name.as_deref().unwrap_or("Unknown Episode");
+
     println!(
         "   S{:02}E{:02} - {} ({} versions)",
-        season, ep_num, episode.name, version_count
+        season, ep_num, episode_name, version_count
     );
 
     let mut files_to_delete = Vec::new();

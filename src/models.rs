@@ -49,7 +49,7 @@ pub struct EpisodesResponse {
 #[derive(Debug, Deserialize)]
 pub struct Episode {
     #[serde(rename = "Name")]
-    pub name: String,
+    pub name: Option<String>,
     #[serde(rename = "IndexNumber")]
     pub episode_number: Option<u32>,
     #[serde(rename = "ParentIndexNumber")]
