@@ -163,12 +163,19 @@ pub fn print_duplicate_movies(movie_groups: Vec<Vec<Movie>>) -> Vec<FileToDelete
             println!("{}", "-".repeat(80));
             println!("   Multiple copies found: {}\n", movie_group.len());
 
-            // Collect all media sources from all movies
+            // Collect all media sources from all movies and deduplicate by path
             let mut all_sources: Vec<MediaSource> = Vec::new();
+            let mut seen_paths: std::collections::HashSet<String> = std::collections::HashSet::new();
+
             for movie in &movie_group {
                 if let Some(media_sources) = &movie.media_sources {
                     for source in media_sources {
-                        all_sources.push(source.clone());
+                        // Only add if we haven't seen this path before
+                        if let Some(path) = &source.path {
+                            if seen_paths.insert(path.clone()) {
+                                all_sources.push(source.clone());
+                            }
+                        }
                     }
                 }
             }
