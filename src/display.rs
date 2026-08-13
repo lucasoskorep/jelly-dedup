@@ -7,15 +7,15 @@ pub struct FileToDelete {
     pub size: i64,
 }
 
-pub fn print_duplicate_episodes(show_name: &str, episodes: Vec<Episode>) -> Vec<FileToDelete> {
+pub fn print_duplicate_episodes(show_name: &str, episode_groups: Vec<Vec<Episode>>) -> Vec<FileToDelete> {
     println!("\n📺 Show: {}", show_name);
     println!("{}", "-".repeat(80));
-    println!("   Episodes with multiple versions: {}\n", episodes.len());
+    println!("   Episodes with multiple versions: {}\n", episode_groups.len());
 
     let mut files_to_delete = Vec::new();
 
-    for episode in episodes {
-        let to_delete = print_episode_with_versions(episode);
+    for group in episode_groups {
+        let to_delete = print_episode_with_versions(group);
         files_to_delete.extend(to_delete);
     }
 
@@ -24,54 +24,54 @@ pub fn print_duplicate_episodes(show_name: &str, episodes: Vec<Episode>) -> Vec<
     files_to_delete
 }
 
-fn print_episode_with_versions(episode: Episode) -> Vec<FileToDelete> {
-    let season = episode.season_number.unwrap_or(0);
-    let ep_num = episode.episode_number.unwrap_or(0);
+fn print_episode_with_versions(group: Vec<Episode>) -> Vec<FileToDelete> {
+    let first = match group.first() {
+        Some(episode) => episode,
+        None => return Vec::new(),
+    };
 
-    let version_count = episode
-        .media_sources
-        .as_ref()
-        .map(|ms| ms.len())
-        .unwrap_or(0);
+    let season = first.season_number.unwrap_or(0);
+    let ep_num = first.episode_number.unwrap_or(0);
 
-    let episode_name = episode.name.as_deref().unwrap_or("Unknown Episode");
+    // Not every episode carries a name, so take the first one that does
+    let episode_name = group
+        .iter()
+        .find_map(|episode| episode.name.as_deref())
+        .unwrap_or("Unknown Episode");
+
+    // Gather the files from every item in the group, deduplicated by path
+    let all_sources = collect_unique_sources(group.iter().map(|ep| &ep.media_sources));
 
     println!(
         "   S{:02}E{:02} - {} ({} versions)",
-        season, ep_num, episode_name, version_count
+        season,
+        ep_num,
+        episode_name,
+        all_sources.len()
     );
 
-    let mut files_to_delete = Vec::new();
+    print_versions(&all_sources)
+}
 
-    if let Some(media_sources) = episode.media_sources {
-        // Select the best source
-        if let Some(best_idx) = selector::select_best_source(&media_sources) {
-            // Print selected file
-            println!("      [SELECTED]");
-            print_media_source(&media_sources[best_idx]);
+/// Flattens media sources from several items into one list, skipping repeated paths
+fn collect_unique_sources<'a>(
+    sources: impl Iterator<Item = &'a Option<Vec<MediaSource>>>,
+) -> Vec<MediaSource> {
+    let mut all_sources: Vec<MediaSource> = Vec::new();
+    let mut seen_paths: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-            // Print non-selected files
-            if media_sources.len() > 1 {
-                println!("      [TO DELETE]");
-                for (idx, source) in media_sources.iter().enumerate() {
-                    if idx != best_idx {
-                        print_media_source(source);
-                        if let Some(path) = &source.path {
-                            let size = source.size.unwrap_or(0);
-                            files_to_delete.push(FileToDelete {
-                                path: path.clone(),
-                                size,
-                            });
-                        }
-                    }
+    for media_sources in sources.flatten() {
+        for source in media_sources {
+            // Only add if we haven't seen this path before
+            if let Some(path) = &source.path {
+                if seen_paths.insert(path.clone()) {
+                    all_sources.push(source.clone());
                 }
             }
         }
     }
 
-    println!();
-
-    files_to_delete
+    all_sources
 }
 
 fn print_media_source(source: &MediaSource) {
@@ -153,7 +153,7 @@ pub fn print_duplicate_movies(movie_groups: Vec<Vec<Movie>>) -> Vec<FileToDelete
 
             if let Some(media_sources) = &movie.media_sources {
                 println!("   Multiple versions found: {}\n", media_sources.len());
-                let to_delete = print_movie_versions(&movie.name, media_sources);
+                let to_delete = print_versions(media_sources);
                 files_to_delete.extend(to_delete);
             }
         } else {
@@ -164,24 +164,10 @@ pub fn print_duplicate_movies(movie_groups: Vec<Vec<Movie>>) -> Vec<FileToDelete
             println!("   Multiple copies found: {}\n", movie_group.len());
 
             // Collect all media sources from all movies and deduplicate by path
-            let mut all_sources: Vec<MediaSource> = Vec::new();
-            let mut seen_paths: std::collections::HashSet<String> = std::collections::HashSet::new();
-
-            for movie in &movie_group {
-                if let Some(media_sources) = &movie.media_sources {
-                    for source in media_sources {
-                        // Only add if we haven't seen this path before
-                        if let Some(path) = &source.path {
-                            if seen_paths.insert(path.clone()) {
-                                all_sources.push(source.clone());
-                            }
-                        }
-                    }
-                }
-            }
+            let all_sources = collect_unique_sources(movie_group.iter().map(|m| &m.media_sources));
 
             if !all_sources.is_empty() {
-                let to_delete = print_movie_versions(&first_movie.name, &all_sources);
+                let to_delete = print_versions(&all_sources);
                 files_to_delete.extend(to_delete);
             }
         }
@@ -200,7 +186,8 @@ fn format_movie_title(movie: &Movie) -> String {
     }
 }
 
-fn print_movie_versions(_movie_name: &str, media_sources: &Vec<MediaSource>) -> Vec<FileToDelete> {
+/// Prints every version, marking the best one as selected and the rest for deletion
+fn print_versions(media_sources: &[MediaSource]) -> Vec<FileToDelete> {
     let mut files_to_delete = Vec::new();
 
     if let Some(best_idx) = selector::select_best_source(media_sources) {
